@@ -2,163 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-    <title>dpmaker - Data Pack Maker</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-        <!-- PWA Manifest -->
-          <link rel="manifest" href="manifest.json">
-            <style>
-                body { font-family: Arial, sans-serif; margin: 2em; background: #f9f9f9; }
-                    h1 { margin-bottom: 0.5em; }
-                        nav { margin-bottom: 1.5em; }
-                            nav button { margin-right: 0.5em; padding: 0.5em 1em; }
-                                section { display: none; background: #fff; border-radius: 6px; box-shadow: 0 2px 8px #0001; padding: 1em; margin-bottom: 1em; }
-                                    section.active { display: block; }
-                                        label { display: block; margin: 1em 0 0.5em; }
-                                            input, textarea, select { width: 100%; margin-bottom: 1em; }
-                                                textarea { height: 100px; }
-                                                    iframe { border: none; width: 100%; height: 600px; border-radius: 6px; }
-                                                        .download-btn { margin-top: 1em; }
-                                                          </style>
-                                                          </head>
-                                                          <body>
-                                                            <h1>dpmaker - Data Pack Maker</h1>
-                                                              <nav>
-                                                                  <button onclick="showSection('mcmeta')">Pack.mcmeta</button>
-                                                                      <button onclick="showSection('advancement')">Advancement</button>
-                                                                          <button onclick="showSection('recipe')">Recipe</button>
-                                                                              <button onclick="showSection('enchant')">Custom Enchant (Misode)</button>
-                                                                                </nav>
+  <title>dpmaker Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Monaco Editor CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+  <!-- JSZip for ZIP export -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { height: 100vh; display: flex; flex-direction: column; }
+    #toolbar { background: #222; color: #fff; padding: 0.5em 1em; display: flex; align-items: center; }
+    #toolbar button { margin-right: 0.5em; }
+    #main { flex: 1; display: flex; min-height: 0; }
+    #sidebar { width: 240px; background: #f3f3f3; border-right: 1px solid #ccc; overflow-y: auto; padding: 1em 0.5em; }
+    #fileTree { list-style: none; padding: 0; margin: 0; }
+    #fileTree li { padding: 0.2em 0.5em; cursor: pointer; border-radius: 4px; }
+    #fileTree li.selected { background: #cce6ff; }
+    #editor { flex: 1; min-width: 0; height: 100%; }
+    @media (max-width: 700px) {
+      #sidebar { width: 100px; }
+      #toolbar { font-size: 0.9em; }
+    }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <button onclick="addFilePrompt()">+ New</button>
+    <button onclick="renameFilePrompt()">Rename</button>
+    <button onclick="deleteFile()">Delete</button>
+    <button onclick="exportPack()">Export ZIP</button>
+    <span style="margin-left: auto;">dpmaker Pro</span>
+  </div>
+  <div id="main">
+    <div id="sidebar">
+      <ul id="fileTree"></ul>
+    </div>
+    <div id="editor"></div>
+  </div>
 
-                                                                                  <!-- Pack.mcmeta Generator -->
-                                                                                    <section id="mcmeta" class="active">
-                                                                                        <h2>Pack.mcmeta Generator</h2>
-                                                                                            <form onsubmit="event.preventDefault(); generateMcmeta();">
-                                                                                                  <label>Pack Name: <input type="text" id="packName" required></label>
-                                                                                                        <label>Description: <input type="text" id="packDesc" required></label>
-                                                                                                              <label>Pack Format: <input type="number" id="packFormat" value="10" required></label>
-                                                                                                                    <button type="submit">Generate</button>
-                                                                                                                        </form>
-                                                                                                                            <label>Generated pack.mcmeta:</label>
-                                                                                                                                <textarea id="mcmetaOutput" readonly></textarea>
-                                                                                                                                    <button class="download-btn" onclick="downloadFile('pack.mcmeta', document.getElementById('mcmetaOutput').value)">Download pack.mcmeta</button>
-                                                                                                                                      </section>
+  <script>
+    // In-memory file system
+    let files = {
+      "pack.mcmeta": '{\n  "pack": {\n    "pack_format": 10,\n    "description": "A new data pack"\n  }\n}',
+      "data/functions/example.mcfunction": "# Example function\nsay Hello, world!",
+      "data/advancements/example.json": '{\n  "criteria": {}\n}',
+      "data/recipes/example.json": '{\n  "type": "minecraft:crafting_shaped"\n}',
+      "data/loot_tables/example.json": '{\n  "pools": []\n}',
+      "data/tags/functions/load.json": '{\n  "values": []\n}',
+      "data/predicates/example.json": '{\n  "condition": "minecraft:entity_properties"\n}'
+    };
+    let selectedFile = "pack.mcmeta";
+    let editorInstance;
 
-                                                                                                                                        <!-- Advancement Generator -->
-                                                                                                                                          <section id="advancement">
-                                                                                                                                              <h2>Advancement Generator</h2>
-                                                                                                                                                  <form onsubmit="event.preventDefault(); generateAdvancement();">
-                                                                                                                                                        <label>Advancement Name: <input type="text" id="advName" required></label>
-                                                                                                                                                              <label>Description: <input type="text" id="advDesc" required></label>
-                                                                                                                                                                    <label>Icon (item id): <input type="text" id="advIcon" value="minecraft:diamond" required></label>
-                                                                                                                                                                          <button type="submit">Generate</button>
-                                                                                                                                                                              </form>
-                                                                                                                                                                                  <label>Generated advancement.json:</label>
-                                                                                                                                                                                      <textarea id="advOutput" readonly></textarea>
-                                                                                                                                                                                          <button class="download-btn" onclick="downloadFile('advancement.json', document.getElementById('advOutput').value)">Download advancement.json</button>
-                                                                                                                                                                                            </section>
+    // File tree rendering
+    function renderFileTree() {
+      const tree = document.getElementById("fileTree");
+      tree.innerHTML = "";
+      Object.keys(files).sort().forEach(file => {
+        const li = document.createElement("li");
+        li.textContent = file;
+        li.className = file === selectedFile ? "selected" : "";
+        li.onclick = () => selectFile(file);
+        tree.appendChild(li);
+      });
+    }
 
-                                                                                                                                                                                              <!-- Recipe Generator -->
-                                                                                                                                                                                                <section id="recipe">
-                                                                                                                                                                                                    <h2>Recipe Generator</h2>
-                                                                                                                                                                                                        <form onsubmit="event.preventDefault(); generateRecipe();">
-                                                                                                                                                                                                              <label>Recipe Name: <input type="text" id="recName" required></label>
-                                                                                                                                                                                                                    <label>Result Item (item id): <input type="text" id="recResult" value="minecraft:diamond" required></label>
-                                                                                                                                                                                                                          <label>Result Count: <input type="number" id="recCount" value="1" required></label>
-                                                                                                                                                                                                                                <label>Pattern (comma separated, e.g. "###,# #,###"): <input type="text" id="recPattern" value="###,# #,###" required></label>
-                                                                                                                                                                                                                                      <label>Key (e.g. #:minecraft:stone): <input type="text" id="recKey" value="#:minecraft:stone" required></label>
-                                                                                                                                                                                                                                            <button type="submit">Generate</button>
-                                                                                                                                                                                                                                                </form>
-                                                                                                                                                                                                                                                    <label>Generated recipe.json:</label>
-                                                                                                                                                                                                                                                        <textarea id="recOutput" readonly></textarea>
-                                                                                                                                                                                                                                                            <button class="download-btn" onclick="downloadFile('recipe.json', document.getElementById('recOutput').value)">Download recipe.json</button>
-                                                                                                                                                                                                                                                              </section>
+    // Monaco Editor setup
+    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
+    require(['vs/editor/editor.main'], function () {
+      editorInstance = monaco.editor.create(document.getElementById('editor'), {
+        value: files[selectedFile],
+        language: getLanguage(selectedFile),
+        theme: "vs-dark",
+        automaticLayout: true,
+        fontSize: 16
+      });
+      editorInstance.onDidChangeModelContent(() => {
+        files[selectedFile] = editorInstance.getValue();
+      });
+    });
 
-                                                                                                                                                                                                                                                                <!-- Misode Custom Enchant Generator (Embedded) -->
-                                                                                                                                                                                                                                                                  <section id="enchant">
-                                                                                                                                                                                                                                                                      <h2>Custom Enchantment Generator (by Misode)</h2>
-                                                                                                                                                                                                                                                                          <p>
-                                                                                                                                                                                                                                                                                Use the embedded Misode Enchantment Generator below to create custom enchantments.<br>
-                                                                                                                                                                                                                                                                                      <a href="https://misode.github.io/enchantment/" target="_blank">Open in new tab</a>
-                                                                                                                                                                                                                                                                                          </p>
-                                                                                                                                                                                                                                                                                              <iframe src="https://misode.github.io/enchantment/" title="Misode Enchantment Generator"></iframe>
-                                                                                                                                                                                                                                                                                                </section>
+    function selectFile(file) {
+      saveCurrentFile();
+      selectedFile = file;
+      editorInstance.setValue(files[file]);
+      monaco.editor.setModelLanguage(editorInstance.getModel(), getLanguage(file));
+      renderFileTree();
+    }
 
-                                                                                                                                                                                                                                                                                                  <script>
-                                                                                                                                                                                                                                                                                                      // Navigation logic
-                                                                                                                                                                                                                                                                                                          function showSection(id) {
-                                                                                                                                                                                                                                                                                                                document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
-                                                                                                                                                                                                                                                                                                                      document.getElementById(id).classList.add('active');
-                                                                                                                                                                                                                                                                                                                          }
+    function saveCurrentFile() {
+      if (editorInstance && selectedFile) {
+        files[selectedFile] = editorInstance.getValue();
+      }
+    }
 
-                                                                                                                                                                                                                                                                                                                              // Pack.mcmeta generator
-                                                                                                                                                                                                                                                                                                                                  function generateMcmeta() {
-                                                                                                                                                                                                                                                                                                                                        const name = document.getElementById('packName').value;
-                                                                                                                                                                                                                                                                                                                                              const desc = document.getElementById('packDesc').value;
-                                                                                                                                                                                                                                                                                                                                                    const format = document.getElementById('packFormat').value;
-                                                                                                                                                                                                                                                                                                                                                          const mcmeta = {
-                                                                                                                                                                                                                                                                                                                                                                  pack: {
-                                                                                                                                                                                                                                                                                                                                                                            pack_format: parseInt(format),
-                                                                                                                                                                                                                                                                                                                                                                                      description: desc
-                                                                                                                                                                                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                                                                                                                                                                                                    };
-                                                                                                                                                                                                                                                                                                                                                                                                          document.getElementById('mcmetaOutput').value = JSON.stringify(mcmeta, null, 2);
-                                                                                                                                                                                                                                                                                                                                                                                                              }
+    function getLanguage(filename) {
+      if (filename.endsWith(".json")) return "json";
+      if (filename.endsWith(".mcfunction")) return "plaintext";
+      return "plaintext";
+    }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                  // Advancement generator
-                                                                                                                                                                                                                                                                                                                                                                                                                      function generateAdvancement() {
-                                                                                                                                                                                                                                                                                                                                                                                                                            const name = document.getElementById('advName').value;
-                                                                                                                                                                                                                                                                                                                                                                                                                                  const desc = document.getElementById('advDesc').value;
-                                                                                                                                                                                                                                                                                                                                                                                                                                        const icon = document.getElementById('advIcon').value;
-                                                                                                                                                                                                                                                                                                                                                                                                                                              const adv = {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                      display: {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                title: name,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          description: desc,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    icon: { item: icon }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            },
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    criteria: {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              trigger: { trigger: "minecraft:tick" }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            };
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  document.getElementById('advOutput').value = JSON.stringify(adv, null, 2);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      }
+    function addFilePrompt() {
+      const name = prompt("Enter new file path (e.g., data/functions/new.mcfunction):");
+      if (name && !files[name]) {
+        files[name] = "";
+        renderFileTree();
+        selectFile(name);
+      }
+    }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          // Recipe generator
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              function generateRecipe() {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    const name = document.getElementById('recName').value;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          const result = document.getElementById('recResult').value;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                const count = parseInt(document.getElementById('recCount').value);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      const pattern = document.getElementById('recPattern').value.split(',');
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            const keyInput = document.getElementById('recKey').value.split(',');
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const key = {};
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        keyInput.forEach(pair => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                const [char, item] = pair.split(':');
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (char && item) key[char] = { item: item.trim() };
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    const recipe = {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            type: "minecraft:crafting_shaped",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    pattern: pattern,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            key: key,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    result: { item: result, count: count }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          };
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                document.getElementById('recOutput').value = JSON.stringify(recipe, null, 2);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+    function renameFilePrompt() {
+      if (!selectedFile) return;
+      const newName = prompt("Rename file:", selectedFile);
+      if (newName && newName !== selectedFile && !files[newName]) {
+        files[newName] = files[selectedFile];
+        delete files[selectedFile];
+        renderFileTree();
+        selectFile(newName);
+      }
+    }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // Download helper
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            function downloadFile(filename, content) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const blob = new Blob([content], {type: 'application/json'});
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        const link = document.createElement('a');
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              link.href = URL.createObjectURL(blob);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    link.download = filename;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          link.click();
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
+    function deleteFile() {
+      if (!selectedFile) return;
+      if (confirm(`Delete ${selectedFile}?`)) {
+        delete files[selectedFile];
+        selectedFile = Object.keys(files)[0] || "";
+        renderFileTree();
+        if (selectedFile) selectFile(selectedFile);
+        else editorInstance.setValue("");
+      }
+    }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // PWA Service Worker registration (optional, for offline support)
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      if ('serviceWorker' in navigator) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            window.addEventListener('load', () => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    navigator.serviceWorker.register('service-worker.js').catch(() => {});
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </script>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </body>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </html>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+    async function exportPack() {
+      saveCurrentFile();
+      const zip = new JSZip();
+      Object.entries(files).forEach(([path, content]) => zip.file(path, content));
+      const blob = await zip.generateAsync({type: "blob"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "datapack.zip";
+      link.click();
+    }
+
+    // Initial render
+    renderFileTree();
+
+    // Responsive Monaco Editor
+    window.addEventListener('resize', () => {
+      if (editorInstance) editorInstance.layout();
+    });
+  </script>
+</body>
+</html>
