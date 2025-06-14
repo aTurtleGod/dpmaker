@@ -2,155 +2,163 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>dpmaker Pro</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Monaco Editor CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
-  <!-- JSZip for ZIP export -->
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <style>
-    html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { height: 100vh; display: flex; flex-direction: column; }
-    #toolbar { background: #222; color: #fff; padding: 0.5em 1em; display: flex; align-items: center; }
-    #toolbar button { margin-right: 0.5em; }
-    #main { flex: 1; display: flex; min-height: 0; }
-    #sidebar { width: 240px; background: #f3f3f3; border-right: 1px solid #ccc; overflow-y: auto; padding: 1em 0.5em; }
-    #fileTree { list-style: none; padding: 0; margin: 0; }
-    #fileTree li { padding: 0.2em 0.5em; cursor: pointer; border-radius: 4px; }
-    #fileTree li.selected { background: #cce6ff; }
-    #editor { flex: 1; min-width: 0; height: 100%; }
-    @media (max-width: 700px) {
-      #sidebar { width: 100px; }
-      #toolbar { font-size: 0.9em; }
-    }
-  </style>
-</head>
-<body>
-  <div id="toolbar">
-    <button onclick="addFilePrompt()">+ New</button>
-    <button onclick="renameFilePrompt()">Rename</button>
-    <button onclick="deleteFile()">Delete</button>
-    <button onclick="exportPack()">Export ZIP</button>
-    <span style="margin-left: auto;">dpmaker Pro</span>
-  </div>
-  <div id="main">
-    <div id="sidebar">
-      <ul id="fileTree"></ul>
-    </div>
-    <div id="editor"></div>
-  </div>
+    <title>dpmaker Pro</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="manifest" href="/dpmaker/manifest.json">
+          <link rel="icon" href="/dpmaker/icon-192.png">
+            <style>
+                html, body { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+                    body { height: 100vh; display: flex; flex-direction: column; }
+                        #toolbar { background: #222; color: #fff; padding: 0.5em 1em; display: flex; align-items: center; }
+                            #toolbar button { margin-right: 0.5em; }
+                                #main { flex: 1; display: flex; min-height: 0; }
+                                    #sidebar { width: 240px; background: #f3f3f3; border-right: 1px solid #ccc; overflow-y: auto; padding: 1em 0.5em; }
+                                        #fileTree { list-style: none; padding: 0; margin: 0; }
+                                            #fileTree li { padding: 0.2em 0.5em; cursor: pointer; border-radius: 4px; }
+                                                #fileTree li.selected { background: #cce6ff; }
+                                                    #editor { flex: 1; min-width: 0; height: 100%; }
+                                                        @media (max-width: 700px) {
+                                                              #sidebar { width: 100px; }
+                                                                    #toolbar { font-size: 0.9em; }
+                                                                        }
+                                                                          </style>
+                                                                          </head>
+                                                                          <body>
+                                                                            <div id="toolbar">
+                                                                                <button onclick="addFilePrompt()">+ New</button>
+                                                                                    <button onclick="renameFilePrompt()">Rename</button>
+                                                                                        <button onclick="deleteFile()">Delete</button>
+                                                                                            <button onclick="exportPack()">Export ZIP</button>
+                                                                                                <span style="margin-left: auto;">dpmaker Pro</span>
+                                                                                                  </div>
+                                                                                                    <div id="main">
+                                                                                                        <div id="sidebar">
+                                                                                                              <ul id="fileTree"></ul>
+                                                                                                                  </div>
+                                                                                                                      <div id="editor"></div>
+                                                                                                                        </div>
+                                                                                                                          <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+                                                                                                                            <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+                                                                                                                              <script>
+                                                                                                                                  // In-memory file system
+                                                                                                                                      let files = {
+                                                                                                                                            "pack.mcmeta": '{\n  "pack": {\n    "pack_format": 10,\n    "description": "A new data pack"\n  }\n}',
+                                                                                                                                                  "data/functions/example.mcfunction": "# Example function\nsay Hello, world!",
+                                                                                                                                                        "data/advancements/example.json": '{\n  "criteria": {}\n}',
+                                                                                                                                                              "data/recipes/example.json": '{\n  "type": "minecraft:crafting_shaped"\n}',
+                                                                                                                                                                    "data/loot_tables/example.json": '{\n  "pools": []\n}',
+                                                                                                                                                                          "data/tags/functions/load.json": '{\n  "values": []\n}',
+                                                                                                                                                                                "data/predicates/example.json": '{\n  "condition": "minecraft:entity_properties"\n}'
+                                                                                                                                                                                    };
+                                                                                                                                                                                        let selectedFile = "pack.mcmeta";
+                                                                                                                                                                                            let editorInstance;
 
-  <script>
-    // In-memory file system
-    let files = {
-      "pack.mcmeta": '{\n  "pack": {\n    "pack_format": 10,\n    "description": "A new data pack"\n  }\n}',
-      "data/functions/example.mcfunction": "# Example function\nsay Hello, world!",
-      "data/advancements/example.json": '{\n  "criteria": {}\n}',
-      "data/recipes/example.json": '{\n  "type": "minecraft:crafting_shaped"\n}',
-      "data/loot_tables/example.json": '{\n  "pools": []\n}',
-      "data/tags/functions/load.json": '{\n  "values": []\n}',
-      "data/predicates/example.json": '{\n  "condition": "minecraft:entity_properties"\n}'
-    };
-    let selectedFile = "pack.mcmeta";
-    let editorInstance;
+                                                                                                                                                                                                // File tree rendering
+                                                                                                                                                                                                    function renderFileTree() {
+                                                                                                                                                                                                          const tree = document.getElementById("fileTree");
+                                                                                                                                                                                                                tree.innerHTML = "";
+                                                                                                                                                                                                                      Object.keys(files).sort().forEach(file => {
+                                                                                                                                                                                                                              const li = document.createElement("li");
+                                                                                                                                                                                                                                      li.textContent = file;
+                                                                                                                                                                                                                                              li.className = file === selectedFile ? "selected" : "";
+                                                                                                                                                                                                                                                      li.onclick = () => selectFile(file);
+                                                                                                                                                                                                                                                              tree.appendChild(li);
+                                                                                                                                                                                                                                                                    });
+                                                                                                                                                                                                                                                                        }
 
-    // File tree rendering
-    function renderFileTree() {
-      const tree = document.getElementById("fileTree");
-      tree.innerHTML = "";
-      Object.keys(files).sort().forEach(file => {
-        const li = document.createElement("li");
-        li.textContent = file;
-        li.className = file === selectedFile ? "selected" : "";
-        li.onclick = () => selectFile(file);
-        tree.appendChild(li);
-      });
-    }
+                                                                                                                                                                                                                                                                            // Monaco Editor setup
+                                                                                                                                                                                                                                                                                require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
+                                                                                                                                                                                                                                                                                    require(['vs/editor/editor.main'], function () {
+                                                                                                                                                                                                                                                                                          editorInstance = monaco.editor.create(document.getElementById('editor'), {
+                                                                                                                                                                                                                                                                                                  value: files[selectedFile],
+                                                                                                                                                                                                                                                                                                          language: getLanguage(selectedFile),
+                                                                                                                                                                                                                                                                                                                  theme: "vs-dark",
+                                                                                                                                                                                                                                                                                                                          automaticLayout: true,
+                                                                                                                                                                                                                                                                                                                                  fontSize: 16
+                                                                                                                                                                                                                                                                                                                                        });
+                                                                                                                                                                                                                                                                                                                                              editorInstance.onDidChangeModelContent(() => {
+                                                                                                                                                                                                                                                                                                                                                      files[selectedFile] = editorInstance.getValue();
+                                                                                                                                                                                                                                                                                                                                                            });
+                                                                                                                                                                                                                                                                                                                                                                });
 
-    // Monaco Editor setup
-    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
-    require(['vs/editor/editor.main'], function () {
-      editorInstance = monaco.editor.create(document.getElementById('editor'), {
-        value: files[selectedFile],
-        language: getLanguage(selectedFile),
-        theme: "vs-dark",
-        automaticLayout: true,
-        fontSize: 16
-      });
-      editorInstance.onDidChangeModelContent(() => {
-        files[selectedFile] = editorInstance.getValue();
-      });
-    });
+                                                                                                                                                                                                                                                                                                                                                                    function selectFile(file) {
+                                                                                                                                                                                                                                                                                                                                                                          saveCurrentFile();
+                                                                                                                                                                                                                                                                                                                                                                                selectedFile = file;
+                                                                                                                                                                                                                                                                                                                                                                                      editorInstance.setValue(files[file]);
+                                                                                                                                                                                                                                                                                                                                                                                            monaco.editor.setModelLanguage(editorInstance.getModel(), getLanguage(file));
+                                                                                                                                                                                                                                                                                                                                                                                                  renderFileTree();
+                                                                                                                                                                                                                                                                                                                                                                                                      }
 
-    function selectFile(file) {
-      saveCurrentFile();
-      selectedFile = file;
-      editorInstance.setValue(files[file]);
-      monaco.editor.setModelLanguage(editorInstance.getModel(), getLanguage(file));
-      renderFileTree();
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                          function saveCurrentFile() {
+                                                                                                                                                                                                                                                                                                                                                                                                                if (editorInstance && selectedFile) {
+                                                                                                                                                                                                                                                                                                                                                                                                                        files[selectedFile] = editorInstance.getValue();
+                                                                                                                                                                                                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                                                                                                                                                                                                                  }
 
-    function saveCurrentFile() {
-      if (editorInstance && selectedFile) {
-        files[selectedFile] = editorInstance.getValue();
-      }
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                      function getLanguage(filename) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                            if (filename.endsWith(".json")) return "json";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                  if (filename.endsWith(".mcfunction")) return "plaintext";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        return "plaintext";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
 
-    function getLanguage(filename) {
-      if (filename.endsWith(".json")) return "json";
-      if (filename.endsWith(".mcfunction")) return "plaintext";
-      return "plaintext";
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                function addFilePrompt() {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                      const name = prompt("Enter new file path (e.g., data/functions/new.mcfunction):");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (name && !files[name]) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    files[name] = "";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            renderFileTree();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    selectFile(name);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
 
-    function addFilePrompt() {
-      const name = prompt("Enter new file path (e.g., data/functions/new.mcfunction):");
-      if (name && !files[name]) {
-        files[name] = "";
-        renderFileTree();
-        selectFile(name);
-      }
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  function renameFilePrompt() {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (!selectedFile) return;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              const newName = prompt("Rename file:", selectedFile);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (newName && newName !== selectedFile && !files[newName]) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            files[newName] = files[selectedFile];
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    delete files[selectedFile];
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            renderFileTree();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    selectFile(newName);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
 
-    function renameFilePrompt() {
-      if (!selectedFile) return;
-      const newName = prompt("Rename file:", selectedFile);
-      if (newName && newName !== selectedFile && !files[newName]) {
-        files[newName] = files[selectedFile];
-        delete files[selectedFile];
-        renderFileTree();
-        selectFile(newName);
-      }
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  function deleteFile() {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (!selectedFile) return;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              if (confirm(`Delete ${selectedFile}?`)) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      delete files[selectedFile];
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              selectedFile = Object.keys(files)[0] || "";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      renderFileTree();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              if (selectedFile) selectFile(selectedFile);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      else editorInstance.setValue("");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
 
-    function deleteFile() {
-      if (!selectedFile) return;
-      if (confirm(`Delete ${selectedFile}?`)) {
-        delete files[selectedFile];
-        selectedFile = Object.keys(files)[0] || "";
-        renderFileTree();
-        if (selectedFile) selectFile(selectedFile);
-        else editorInstance.setValue("");
-      }
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    async function exportPack() {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          saveCurrentFile();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                const zip = new JSZip();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      Object.entries(files).forEach(([path, content]) => zip.file(path, content));
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            const blob = await zip.generateAsync({type: "blob"});
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const link = document.createElement("a");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        link.href = URL.createObjectURL(blob);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              link.download = "datapack.zip";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    link.click();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
 
-    async function exportPack() {
-      saveCurrentFile();
-      const zip = new JSZip();
-      Object.entries(files).forEach(([path, content]) => zip.file(path, content));
-      const blob = await zip.generateAsync({type: "blob"});
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "datapack.zip";
-      link.click();
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // Initial render
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                renderFileTree();
 
-    // Initial render
-    renderFileTree();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    // Responsive Monaco Editor
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        window.addEventListener('resize', () => {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              if (editorInstance) editorInstance.layout();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  });
 
-    // Responsive Monaco Editor
-    window.addEventListener('resize', () => {
-      if (editorInstance) editorInstance.layout();
-    });
-  </script>
-</body>
-</html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      // PWA Service Worker registration
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          if ('serviceWorker' in navigator) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                navigator.serviceWorker.register('/dpmaker/service-worker.js');
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </script>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </body>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+
+
+

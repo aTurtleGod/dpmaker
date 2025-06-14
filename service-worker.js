@@ -3,8 +3,7 @@ const URLS_TO_CACHE = [
   '/dpmaker/',
     '/dpmaker/index.html',
       '/dpmaker/manifest.json',
-        '/dpmaker/icon-192.png',
-          '/dpmaker/icon-512.png'
+        '/dpmaker/notepad.jpg'
             // Add other assets as needed
             ];
 
