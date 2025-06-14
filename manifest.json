@@ -1,15 +1,15 @@
 {
-  "name": "dpmaker",
-  "short_name": "dpmaker",
-  "start_url": "/dpmaker/",
-  "display": "standalone",
-  "background_color": "#222",
-  "theme_color": "#222",
-  "icons": [
-    {
-      "src": "/dpmaker/notepad.jpg",
-      "sizes": "256x256",
-      "type": "image/jpeg"
-    }
-  ]
+    "name": "dpmaker",
+    "short_name": "dpmaker",
+    "start_url": "/dpmaker/",
+    "display": "standalone",
+    "background_color": "#222",
+    "theme_color": "#222",
+    "icons": [
+        {
+            "src": "/dpmaker/notepad.jpg",
+            "sizes": "256×256",
+            "type": "image/jpg"
+        }
+    ]
 }
